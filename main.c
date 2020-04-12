@@ -66,7 +66,7 @@ uint16_t diff(uint16_t, uint16_t);
 volatile uint8_t laser1 = 0;
 extern int textHeight = 50;
 double final_result;
-int sleepCount = 0;
+int sleepCount = 0, touch_cal_count = 0;
 extern void eraseButton(Graphics_Button* button);
 
 void config_ACLK_to_32KHz_crystal();
@@ -181,8 +181,9 @@ void main(void)
     while(1){
         _low_power_mode_3();
 
-        if(cal)
+        if(cal){
             touch_calibrate();
+        }
     }
 }
 
@@ -323,9 +324,9 @@ __interrupt void mine2() {
                 // Toggle edge-signal
                 P2IES &= ~TOUCH_X_MINUS_PIN;
 
-                TA1CCTL1 |= CCIFG;                // Set timer flag, so to immediately take points
-                TA1CTL |= (TACLR);              // Enable interrupts and clear timer
-                TA1CCTL1 |= CCIE;
+                // If it returns 0, exit to run recalibration
+                if(!(run_touch()) )
+                    __low_power_mode_off_on_exit();
             }
             // If release,
                 // -Flip signal edge \
@@ -382,8 +383,7 @@ __interrupt void T1A0_ISR() {
 
 // ISR of Timer (A1 vector)
 // Rollback and Ch. 1&2
-#pragma vector = TIMER1_A1_VECTOR
-__interrupt void T1A_ISR() {
+int run_touch() {
 
     /*Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
     Graphics_drawStringCentered(&g_sContext, "Touched down ",
@@ -400,6 +400,7 @@ __interrupt void T1A_ISR() {
     volatile uint16_t x = touch_sampleX();
     volatile uint16_t y = touch_sampleY();
 
+
     /*Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
     Graphics_drawStringCentered(&g_sContext, "Pulled points ",
                                             AUTO_STRING_LENGTH,
@@ -408,6 +409,97 @@ __interrupt void T1A_ISR() {
                                             TRANSPARENT_TEXT);*/
     x = scaleX(x);
     y = scaleY(y);
+
+    // If x || y have value at the extreme more that 4 times, exit low power mode to
+    // recalibrate
+    if(x >= LCD_HORIZONTAL_MAX || y >= LCD_VERTICAL_MAX){
+        if(touch_cal_count > 4){
+            // Draw warning for recalibration
+            Graphics_Rectangle clear = {0,textHeight+15,LCD_HORIZONTAL_MAX -10,LCD_VERTICAL_MAX -10};
+            Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
+            Graphics_fillRectangle(&g_sContext, &clear);
+
+            Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_RED);
+            Graphics_drawStringCentered(&g_sContext, "Calibration error detected",
+                                        AUTO_STRING_LENGTH,
+                                        159,
+                                        textHeight,
+                                        TRANSPARENT_TEXT);
+            Graphics_drawStringCentered(&g_sContext, "Tap again to confirm.",
+                                        AUTO_STRING_LENGTH,
+                                        159,
+                                        textHeight + 25,
+                                        TRANSPARENT_TEXT);
+
+            // Check one more time
+            setCal(1);        // For function's LPM call
+            /* Wait for a tocuh to be detected and wait ~4ms. */
+            cal_touch_detectedTouch();
+
+            x = touch_sampleX();
+            y = touch_sampleY();
+            x = scaleX(x);
+            y = scaleY(y);
+
+            /* Wait for the touch to stop and wait ~4ms. */
+            while(cal_touch_detectedTouch())
+                {
+                    ;
+                }
+
+            // Clear text
+            Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
+            Graphics_drawStringCentered(&g_sContext, "Calibration error detected",
+                                        AUTO_STRING_LENGTH,
+                                        159,
+                                        textHeight,
+                                        TRANSPARENT_TEXT);
+            Graphics_drawStringCentered(&g_sContext, "Tap again to confirm.",
+                                        AUTO_STRING_LENGTH,
+                                        159,
+                                        textHeight + 25,
+                                        TRANSPARENT_TEXT);
+
+
+            // If fail, return and recalibrate
+            if(x >= LCD_HORIZONTAL_MAX || y >= LCD_VERTICAL_MAX){
+
+
+                Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_RED);
+                Graphics_drawStringCentered(&g_sContext, "Initiating recalibration.",
+                                            AUTO_STRING_LENGTH,
+                                            159,
+                                            textHeight,
+                                            TRANSPARENT_TEXT);
+
+                // Return signal to recalibrate
+                return 0;
+
+                // Turn off touch screen
+                // ...
+            }
+            // Else, return to home and restart
+            else{
+                Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_RED);
+                Graphics_drawStringCentered(&g_sContext, "Everything is fine,",
+                                            AUTO_STRING_LENGTH,
+                                            159,
+                                            textHeight,
+                                            TRANSPARENT_TEXT);
+                Graphics_drawStringCentered(&g_sContext, "returning to home.",
+                                            AUTO_STRING_LENGTH,
+                                            159,
+                                            textHeight + 25,
+                                            TRANSPARENT_TEXT);
+                updateMenuScreen(getCurrMenuScreen());
+                return 1;
+            }
+        }
+    }
+    else{
+        touch_cal_count = 0;
+    }
+
 //    volatile uint16_t x = scaleX(touch_sampleX());
 //    volatile uint16_t y = scaleY(touch_sampleY());
 
@@ -449,8 +541,7 @@ __interrupt void T1A_ISR() {
     }
     //}
 
-    // Clear flag
-    TA1CCTL1 &= ~CCIFG;
+    return 100;
 
 }
 

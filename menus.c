@@ -399,7 +399,7 @@ void run(volatile int* color1, volatile int* color2){
     setSleepTimer();
 }
 
-int mainMenu(uint16_t x, uint16_t y){
+void mainMenu(uint16_t x, uint16_t y){
 
     char testing[] = {'x', ' ', '=', ' ', (x+'1'), ',', ' ', 'y', '=', ' ', (y+'1')};
     /*Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);

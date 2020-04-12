@@ -124,6 +124,7 @@ void touch_initInterface(void);
 void touch_updateCurrentTouch(touch_context *data);
 void touch_calibrate(void);
 void touch_detectedTouch(void);
+bool cal_touch_detectedTouch(void);
 uint16_t scaleX(uint16_t);
 uint16_t scaleY(uint16_t);
 

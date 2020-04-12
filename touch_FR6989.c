@@ -43,7 +43,7 @@
  */
 extern Graphics_Context g_sContext;
 
-static bool cal_touch_detectedTouch(void);
+//static bool cal_touch_detectedTouch(void);
 
 #if defined(__TI_COMPILER_VERSION__)
 #pragma LOCATION(touch_calibrationData, 0x4400);
@@ -369,7 +369,7 @@ void touch_detectedTouch(void){
     //while(GPIO_getInputPinValue(TOUCH_Y_PLUS_PORT, TOUCH_Y_PLUS_PIN) != 0);
 }
 
-static bool cal_touch_detectedTouch(void){
+bool cal_touch_detectedTouch(void){
     uint16_t ui16ADCtemp;
     // Set up pins and flags
     touch_detectedTouch();
