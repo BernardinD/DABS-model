@@ -135,12 +135,16 @@ void Initialize_ADC() {
 }
 
 void whichADC(int touch){
+    // Turn off ENC (Enable Conversion) bit while modifying the configuration
+    ADC12CTL0 &= ~ADC12ENC;
     if(touch){
         setTouchADC();
     }
     else{
         setDetectorADC();
     }
+    // Turn on ENC (Enable Conversion) bit at the end of the configuration
+    ADC12CTL0 |= ADC12ENC;
 }
 
 void setTouchADC(){

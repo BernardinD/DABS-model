@@ -97,7 +97,7 @@ volatile int16_t prevX = 10000;
 volatile int16_t prevY = 10000;
 
 // Beer values
-double good = 0.1, bad = 0.02;
+double good = 0.5, bad = 1.4;
 // 0.5, 1.4
 
 // All changes to list should reflect in function 'finalize()'
