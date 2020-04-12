@@ -125,14 +125,33 @@ void Initialize_ADC() {
     // Set ADC12VRSEL (select VR+=AVCC, VR-=AVSS)
     // Set ADC12INCH (select the analog channel that you found)
     // Set ADC12EOS (last conversion in ADC12MEM1)
-    ADC12MCTL0 &= ~(ADC12VRSEL3|ADC12VRSEL2|ADC12VRSEL1|ADC12VRSEL0);
-    ADC12MCTL1 |= (ADC12INCH3|ADC12INCH2|ADC12INCH1|ADC12INCH0|ADC12EOS);//(ADC12INCH2|ADC12INCH1|ADC12EOS);                     // X
-    ADC12MCTL0 |= (ADC12INCH3|ADC12INCH2|ADC12INCH1);//(ADC12INCH2|ADC12INCH1|ADC12INCH0);                   // Y
+
+    setTouchADC();
 
     // Turn on ENC (Enable Conversion) bit at the end of the configuration
     ADC12CTL0 |= ADC12ENC;
 
     return;
+}
+
+void whichADC(int touch){
+    if(touch){
+        setTouchADC();
+    }
+    else{
+        setDetectorADC();
+    }
+}
+
+void setTouchADC(){
+    ADC12MCTL0 &= ~(ADC12VRSEL3|ADC12VRSEL2|ADC12VRSEL1|ADC12VRSEL0);
+    ADC12MCTL1 |= (ADC12INCH3|ADC12INCH2|ADC12INCH1|ADC12INCH0);//(ADC12INCH2|ADC12INCH1|ADC12EOS);                     // X
+    ADC12MCTL0 |= (ADC12INCH3|ADC12INCH2|ADC12INCH1);//(ADC12INCH2|ADC12INCH1|ADC12INCH0);                   // Y
+}
+
+void setDetectorADC(){
+    ADC12MCTL2 |= ADC12VRSEL_1;
+    ADC12MCTL2 |= (ADC12INCH1|ADC12EOS);                    // Lasor sensor
 }
 
 void touch_initInterface(void)

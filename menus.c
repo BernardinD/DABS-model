@@ -317,6 +317,7 @@ void run(volatile int* color1, volatile int* color2){
 
     // Set delay timer
     setLaserTimer();
+    setDetectorADC();
 
     // Turn on laser1
     P6OUT |= BIT0;
@@ -397,6 +398,7 @@ void run(volatile int* color1, volatile int* color2){
 
     // Reset touch delay
     setSleepTimer();
+    setTouchADC();
 }
 
 void mainMenu(uint16_t x, uint16_t y){

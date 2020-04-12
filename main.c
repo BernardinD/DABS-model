@@ -304,7 +304,7 @@ __interrupt void mine2() {
     }
     else{
         // If touch
-        //setSleepTimer();
+        setSleepTimer();
             // Exit sleep mode
         if ((P2OUT & LCD_PWM_PIN) == 0){
             GPIO_setOutputHighOnPin(LCD_PWM_PORT,
@@ -364,7 +364,7 @@ __interrupt void T1A0_ISR() {
 
     // Using touch pin as flag since it should be on during most operations
     // and off during the laser operation
-    /*if((P2IE & TOUCH_X_MINUS_PIN) != 0){
+    if((P2IE & TOUCH_X_MINUS_PIN) != 0){
         // But device to sleep
         // Check if count == limit, if so sleep, else increase counter
         if (sleepCount == 8){
@@ -374,11 +374,11 @@ __interrupt void T1A0_ISR() {
         else
             sleepCount += 1;
 
-    }*/
-    //else{
+    }
+    else{
         // Using for delay in laser on/off
         __low_power_mode_off_on_exit();
-//    }
+    }
 }
 
 // ISR of Timer (A1 vector)
