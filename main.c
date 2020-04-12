@@ -136,14 +136,6 @@ void main(void)
     P1OUT &= ~redLED; // Red off
     P9OUT &= ~greenLED; // Green o
 
-    // Configuring buttons with interrupt
-       /* P1DIR &= ~(BUT1|BUT2);      // 0: input
-        P1REN |= (BUT1|BUT2);       // 1: enable built-in resistors
-        P1OUT |= (BUT1|BUT2);       // 1: built-in resistor is pulled up to Vcc
-        P1IE  |= (BUT1|BUT2);       // 1: enable interrupts
-        P1IES |= (BUT1|BUT2);       // 1: interrupt on falling edge
-        P1IFG &= ~(BUT1|BUT2);      // 0: clear the interrupt flags*/
-
     // Enable the global interrupt bit (call an intrinsic function)
         _enable_interrupts();
 
@@ -190,14 +182,8 @@ void main(void)
 void run_startup(){
 
     Initialize_ADC();
-    // Increase loading bar
-    //rect.xMax += (int)(barWidth*0.20);
-    //Graphics_fillRectangle(&g_sContext, &rect);
 
     Initialize_touch();
-    // Increase loading bar
-    //rect.xMax += (int)(barWidth*0.20);
-    //Graphics_fillRectangle(&g_sContext, &rect);
 
     // Draw loading screen
     /* Display Text to the screen. */
@@ -259,16 +245,6 @@ void Initialize_modules_pins(){
     P3DIR |= BIT7;
     P3OUT &= ~BIT7;         // Temp start signal off
 
-    // Sensor ADC reading, -- ALL OTHER ADC SETTING SHOULD BE TAKEN CARE OF BY TOUCHSCREEN --
-    /*P1SEL1 |= BIT2;
-    P1SEL0 |= BIT2;
-    // Turn off ENC (Enable Conversion) bit while modifying the configuration
-    ADC12CTL0 &= ~ADC12ENC;
-    ADC12MCTL3 |= ADC12VRSEL_1;
-    ADC12MCTL3 |= (ADC12INCH1|ADC12EOS);                     // Lasor sensor
-    // Turn on ENC (Enable Conversion) bit at the end of the configuration
-    ADC12CTL0 |= ADC12ENC;*/
-
 }
 uint16_t diff(uint16_t a, uint16_t b){
     int16_t d = a - b;
@@ -315,12 +291,6 @@ __interrupt void mine2() {
         else{
             // If touch-down
             if((P2IN & TOUCH_X_MINUS_PIN)==0){
-                /*Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
-                Graphics_drawStringCentered(&g_sContext, "Touched down ",
-                                                        AUTO_STRING_LENGTH,
-                                                        (LCD_HORIZONTAL_MAX/2),
-                                                        (LCD_VERTICAL_MAX/2),
-                                                        TRANSPARENT_TEXT);*/
                 // Toggle edge-signal
                 P2IES &= ~TOUCH_X_MINUS_PIN;
 
@@ -386,13 +356,6 @@ __interrupt void T1A0_ISR() {
 #pragma vector = TIMER1_A1_VECTOR
 __interrupt void T1A_ISR() {
 
-    /*Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-    Graphics_drawStringCentered(&g_sContext, "Touched down ",
-                                            AUTO_STRING_LENGTH,
-                                            (LCD_HORIZONTAL_MAX/2),
-                                            (LCD_VERTICAL_MAX/2),
-                                            TRANSPARENT_TEXT);*/
-
     // If finger is currently down \
         (just in case timer interrupt has higher priority \
         than the GPIO interrupt)
@@ -401,13 +364,6 @@ __interrupt void T1A_ISR() {
     volatile uint16_t x = touch_sampleX();
     volatile uint16_t y = touch_sampleY();
 
-
-    /*Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
-    Graphics_drawStringCentered(&g_sContext, "Pulled points ",
-                                            AUTO_STRING_LENGTH,
-                                            (LCD_HORIZONTAL_MAX/2),
-                                            (LCD_VERTICAL_MAX/2),
-                                            TRANSPARENT_TEXT);*/
     x = scaleX(x);
     y = scaleY(y);
 
@@ -626,13 +582,6 @@ void drawMainMenu(void)
     // Draw sleep button
     Graphics_drawButton(&g_sContext, &sleepButton);
 
-    // Draw TI banner at the bottom of screnn
-    /*Graphics_drawImage(&g_sContext,
-                       &TI_platform_bar_red4BPP_UNCOMP,
-                       0,
-                       Graphics_getDisplayHeight(
-                           &g_sContext) - TI_platform_bar_red4BPP_UNCOMP.ySize);*/
-
     // Draw Primitives image button
     Graphics_drawButton(&g_sContext, &settingsButton);
 
@@ -816,70 +765,6 @@ void drawResults(void){
     Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_RED);
     //write_recommendations();
 
-}
-
-void write_recommendations(void){
-
-    int i;
-
-    switch(recomm_num/10){
-        /*case(1):
-            Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-            Graphics_drawStringCentered(&g_sContext, recommendations[0],
-                                            AUTO_STRING_LENGTH,
-                                            (LCD_HORIZONTAL_MAX/2),
-                                            150 + 10,
-                                            TRANSPARENT_TEXT);
-            break;
-        case(2):
-            Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-            int start = recomm_num%10, length =
-            for(i = (recomm_num/10); i < ((recomm_num/10) + (recomm_num%10) ); i++)
-                Graphics_drawStringCentered(&g_sContext, recommendations[],
-                                                AUTO_STRING_LENGTH,
-                                                (LCD_HORIZONTAL_MAX/2),
-                                                150 + i*10,
-                                                TRANSPARENT_TEXT);
-            break;
-        case(3):
-            Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-            for(i = (recomm_num/10); i < ((recomm_num/10) + (recomm_num%10) ); i++)
-                Graphics_drawStringCentered(&g_sContext, recommendations[0],
-                                                AUTO_STRING_LENGTH,
-                                                (LCD_HORIZONTAL_MAX/2),
-                                                150 + i*10,
-                                                TRANSPARENT_TEXT);
-            break;
-        default:
-            Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-            for(i = 0; i < recomm_len; i++)
-                Graphics_drawStringCentered(&g_sContext, recommendations[0],
-                                                AUTO_STRING_LENGTH,
-                                                (LCD_HORIZONTAL_MAX/2),
-                                                150 + i*10,
-                                                TRANSPARENT_TEXT);
-            break;
-        case(0):
-            Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-            Graphics_drawStringCentered(&g_sContext, our_recommendations[0],
-                                            AUTO_STRING_LENGTH,
-                                            (LCD_HORIZONTAL_MAX/2),
-                                            150 + 10,
-                                            TRANSPARENT_TEXT);
-            break;
-        default:
-            Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-            int start = recomm_num/10, length =((recomm_num/10) + (recomm_num%10) );
-            for(i = start; i < length; i++)
-                Graphics_drawStringCentered(&g_sContext, our_recommendations[i],
-                                                AUTO_STRING_LENGTH,
-                                                (LCD_HORIZONTAL_MAX/2),
-                                                150 + i*10,
-                                                TRANSPARENT_TEXT);
-            break;
-
-        recomm_num = 0;*/
-    }
 }
 
 void boardInit(void)

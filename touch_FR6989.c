@@ -450,12 +450,6 @@ uint16_t touch_sampleX(void)
     ADC12IFGR0 &= ~(TOUCH_Y_PLUS_IFG);
     ADC12_B_clearInterrupt(ADC12_B_BASE, 0, TOUCH_X_PLUS_IFG | TOUCH_Y_PLUS_IFG);
 
-            /*Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
-                Graphics_drawStringCentered(&g_sContext, "Pulling X ",
-                                                        AUTO_STRING_LENGTH,
-                                                        (LCD_HORIZONTAL_MAX/2),
-                                                        (LCD_VERTICAL_MAX/2),
-                                                        TRANSPARENT_TEXT);*/
     char send[1];
     for(i = 0; i < TOUCH_OVERSAMPLE; i++)
     {
@@ -468,26 +462,11 @@ uint16_t touch_sampleX(void)
         }
         send[0] = ('1' + i);
         Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
-                        /*Graphics_drawStringCentered(&g_sContext, send,
-                                                                AUTO_STRING_LENGTH,
-                                                                (LCD_HORIZONTAL_MAX/2)/TOUCH_OVERSAMPLE * (i+1) ,
-                                                                (LCD_VERTICAL_MAX/2 + 20),
-                                                                TRANSPARENT_TEXT);*/
-        /*while(!ADC12_B_getInterruptStatus(ADC12_B_BASE, 0, TOUCH_Y_PLUS_IFG))
-        {
-            ;
-        }*/
+
         average += ADC12MEM0;
         ADC12MEM0 = 0;
         ADC12IFGR0 &= ~(TOUCH_Y_PLUS_IFG);
     }
-
-                /*Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-                    Graphics_drawStringCentered(&g_sContext, "Pulling X ",
-                                                            AUTO_STRING_LENGTH,
-                                                            (LCD_HORIZONTAL_MAX/2),
-                                                            (LCD_VERTICAL_MAX/2),
-                                                            TRANSPARENT_TEXT);*/
 
     /* Return the analog result. */
     return(average >> TOUCH_AVERAGE_DIVISOR);
@@ -518,13 +497,6 @@ uint16_t touch_sampleY(void)
     ADC12_B_clearInterrupt(ADC12_B_BASE, 0, TOUCH_X_PLUS_IFG | TOUCH_Y_PLUS_IFG);
     ADC12IFGR1 &= ~(TOUCH_X_PLUS_IFG);
 
-
-            /*Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
-                Graphics_drawStringCentered(&g_sContext, "Pulling Y ",
-                                                        AUTO_STRING_LENGTH,
-                                                        (LCD_HORIZONTAL_MAX/2),
-                                                        (LCD_VERTICAL_MAX/2),
-                                                        TRANSPARENT_TEXT);*/
     for(i = 0; i < TOUCH_OVERSAMPLE; i++)
     {
         // Start conversions
@@ -534,12 +506,7 @@ uint16_t touch_sampleY(void)
         while((ADC12IFGR0 & TOUCH_X_PLUS_IFG) == 0){
 
         }
-                /*Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-                    Graphics_drawStringCentered(&g_sContext, "Pulling Y ",
-                                                            AUTO_STRING_LENGTH,
-                                                            (LCD_HORIZONTAL_MAX/2),
-                                                            (LCD_VERTICAL_MAX/2),
-                                                            TRANSPARENT_TEXT);*/
+
         /*while(!ADC12_B_getInterruptStatus(ADC12_B_BASE, 0, TOUCH_X_PLUS_IFG))
         {
             ;

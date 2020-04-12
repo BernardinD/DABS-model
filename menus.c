@@ -403,20 +403,6 @@ void run(volatile int* color1, volatile int* color2){
 
 void mainMenu(uint16_t x, uint16_t y){
 
-    char testing[] = {'x', ' ', '=', ' ', (x+'1'), ',', ' ', 'y', '=', ' ', (y+'1')};
-    /*Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-    Graphics_drawStringCentered(&g_sContext, "Pulled points ",
-                                            AUTO_STRING_LENGTH,
-                                            (LCD_HORIZONTAL_MAX/2),
-                                            (LCD_VERTICAL_MAX/2),
-                                            TRANSPARENT_TEXT);
-
-    Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
-    Graphics_drawStringCentered(&g_sContext, testing,
-                                            AUTO_STRING_LENGTH,
-                                            (LCD_HORIZONTAL_MAX/2),
-                                            (LCD_VERTICAL_MAX/2),
-                                            TRANSPARENT_TEXT);*/
     if(Graphics_isButtonSelected(&settingsButton,
                                       x,
                                       y))
