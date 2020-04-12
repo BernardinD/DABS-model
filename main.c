@@ -260,14 +260,14 @@ void Initialize_modules_pins(){
     P3OUT &= ~BIT7;         // Temp start signal off
 
     // Sensor ADC reading, -- ALL OTHER ADC SETTING SHOULD BE TAKEN CARE OF BY TOUCHSCREEN --
-    P1SEL1 |= BIT2;
+    /*P1SEL1 |= BIT2;
     P1SEL0 |= BIT2;
     // Turn off ENC (Enable Conversion) bit while modifying the configuration
     ADC12CTL0 &= ~ADC12ENC;
     ADC12MCTL3 |= ADC12VRSEL_1;
     ADC12MCTL3 |= (ADC12INCH1|ADC12EOS);                     // Lasor sensor
     // Turn on ENC (Enable Conversion) bit at the end of the configuration
-    ADC12CTL0 |= ADC12ENC;
+    ADC12CTL0 |= ADC12ENC;*/
 
 }
 uint16_t diff(uint16_t a, uint16_t b){
@@ -304,7 +304,7 @@ __interrupt void mine2() {
     }
     else{
         // If touch
-        setSleepTimer();
+        //setSleepTimer();
             // Exit sleep mode
         if ((P2OUT & LCD_PWM_PIN) == 0){
             GPIO_setOutputHighOnPin(LCD_PWM_PORT,
@@ -324,9 +324,9 @@ __interrupt void mine2() {
                 // Toggle edge-signal
                 P2IES &= ~TOUCH_X_MINUS_PIN;
 
-                // If it returns 0, exit to run recalibration
-                if(!(run_touch()) )
-                    __low_power_mode_off_on_exit();
+                TA1CCTL1 |= CCIFG;                // Set timer flag, so to immediately take points
+                TA1CTL |= (TACLR);              // Enable interrupts and clear timer
+                TA1CCTL1 |= CCIE;
             }
             // If release,
                 // -Flip signal edge \
@@ -364,7 +364,7 @@ __interrupt void T1A0_ISR() {
 
     // Using touch pin as flag since it should be on during most operations
     // and off during the laser operation
-    if((P2IE & TOUCH_X_MINUS_PIN) != 0){
+    /*if((P2IE & TOUCH_X_MINUS_PIN) != 0){
         // But device to sleep
         // Check if count == limit, if so sleep, else increase counter
         if (sleepCount == 8){
@@ -374,16 +374,17 @@ __interrupt void T1A0_ISR() {
         else
             sleepCount += 1;
 
-    }
-    else{
+    }*/
+    //else{
         // Using for delay in laser on/off
         __low_power_mode_off_on_exit();
-    }
+//    }
 }
 
 // ISR of Timer (A1 vector)
 // Rollback and Ch. 1&2
-int run_touch() {
+#pragma vector = TIMER1_A1_VECTOR
+__interrupt void T1A_ISR() {
 
     /*Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
     Graphics_drawStringCentered(&g_sContext, "Touched down ",
@@ -412,7 +413,7 @@ int run_touch() {
 
     // If x || y have value at the extreme more that 4 times, exit low power mode to
     // recalibrate
-    if(x >= LCD_HORIZONTAL_MAX || y >= LCD_VERTICAL_MAX){
+    /*if(x >= LCD_HORIZONTAL_MAX || y >= LCD_VERTICAL_MAX){
         if(touch_cal_count > 4){
             // Draw warning for recalibration
             Graphics_Rectangle clear = {0,textHeight+15,LCD_HORIZONTAL_MAX -10,LCD_VERTICAL_MAX -10};
@@ -434,7 +435,7 @@ int run_touch() {
             // Check one more time
             setCal(1);        // For function's LPM call
             /* Wait for a tocuh to be detected and wait ~4ms. */
-            cal_touch_detectedTouch();
+     /*       cal_touch_detectedTouch();
 
             x = touch_sampleX();
             y = touch_sampleY();
@@ -442,7 +443,7 @@ int run_touch() {
             y = scaleY(y);
 
             /* Wait for the touch to stop and wait ~4ms. */
-            while(cal_touch_detectedTouch())
+      /*      while(cal_touch_detectedTouch())
                 {
                     ;
                 }
@@ -498,7 +499,7 @@ int run_touch() {
     }
     else{
         touch_cal_count = 0;
-    }
+    }*/
 
 //    volatile uint16_t x = scaleX(touch_sampleX());
 //    volatile uint16_t y = scaleY(touch_sampleY());
@@ -541,7 +542,8 @@ int run_touch() {
     }
     //}
 
-    return 100;
+    // Clear flag
+    TA1CCTL1 &= ~CCIFG;
 
 }
 
@@ -598,7 +600,8 @@ void timerInit(){
     // Touch timer
     // Configure Channel 0 & 1 for up mode with interrupt
     // Timer for delays (defaults to sleep timer)
-    setSleepTimer();
+    //setSleepTimer();
+    TA1CCR0 = (32000)/8 * 4;      // Set interval to 4 sec
 
     // Timer for touch intervals
     TA1CCR1 = (32000)/8 * 0.5;      // Set interval to 4 sec

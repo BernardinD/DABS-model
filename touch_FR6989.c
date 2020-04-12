@@ -126,8 +126,8 @@ void Initialize_ADC() {
     // Set ADC12INCH (select the analog channel that you found)
     // Set ADC12EOS (last conversion in ADC12MEM1)
     ADC12MCTL0 &= ~(ADC12VRSEL3|ADC12VRSEL2|ADC12VRSEL1|ADC12VRSEL0);
-    ADC12MCTL1 |= /*(ADC12INCH3|ADC12INCH2|ADC12INCH1|ADC12INCH0);*/(ADC12INCH2|ADC12INCH1|ADC12EOS);                     // X
-    ADC12MCTL0 |= /*(ADC12INCH3|ADC12INCH2|ADC12INCH1);*/(ADC12INCH2|ADC12INCH1|ADC12INCH0);                   // Y
+    ADC12MCTL1 |= (ADC12INCH3|ADC12INCH2|ADC12INCH1|ADC12INCH0|ADC12EOS);//(ADC12INCH2|ADC12INCH1|ADC12EOS);                     // X
+    ADC12MCTL0 |= (ADC12INCH3|ADC12INCH2|ADC12INCH1);//(ADC12INCH2|ADC12INCH1|ADC12INCH0);                   // Y
 
     // Turn on ENC (Enable Conversion) bit at the end of the configuration
     ADC12CTL0 |= ADC12ENC;
@@ -433,14 +433,31 @@ uint16_t touch_sampleX(void)
                                                         (LCD_HORIZONTAL_MAX/2),
                                                         (LCD_VERTICAL_MAX/2),
                                                         TRANSPARENT_TEXT);*/
+    char send[1];
     for(i = 0; i < TOUCH_OVERSAMPLE; i++)
     {
         // Start conversions
         ADC12CTL0 |= ADC12SC;
         //ADC12_B_startConversion(ADC12_B_BASE, TOUCH_Y_PLUS_MEMORY,
           //                      ADC12_B_SINGLECHANNEL);
+//        ADC12IFGR0 &= ~(TOUCH_Y_PLUS_IFG);
         while((ADC12IFGR0 & TOUCH_Y_PLUS_IFG) == 0){
         }
+        send[0] = ('1' + i);
+        Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
+                        /*Graphics_drawStringCentered(&g_sContext, send,
+                                                                AUTO_STRING_LENGTH,
+                                                                (LCD_HORIZONTAL_MAX/2)/TOUCH_OVERSAMPLE * (i+1) ,
+                                                                (LCD_VERTICAL_MAX/2 + 20),
+                                                                TRANSPARENT_TEXT);*/
+        /*while(!ADC12_B_getInterruptStatus(ADC12_B_BASE, 0, TOUCH_Y_PLUS_IFG))
+        {
+            ;
+        }*/
+        average += ADC12MEM0;
+        ADC12MEM0 = 0;
+        ADC12IFGR0 &= ~(TOUCH_Y_PLUS_IFG);
+    }
 
                 /*Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
                     Graphics_drawStringCentered(&g_sContext, "Pulling X ",
@@ -448,13 +465,6 @@ uint16_t touch_sampleX(void)
                                                             (LCD_HORIZONTAL_MAX/2),
                                                             (LCD_VERTICAL_MAX/2),
                                                             TRANSPARENT_TEXT);*/
-        /*while(!ADC12_B_getInterruptStatus(ADC12_B_BASE, 0, TOUCH_Y_PLUS_IFG))
-        {
-            ;
-        }*/
-        average += ADC12MEM0;
-        ADC12MEM0 = 0;
-    }
 
     /* Return the analog result. */
     return(average >> TOUCH_AVERAGE_DIVISOR);

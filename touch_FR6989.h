@@ -53,8 +53,8 @@
 /*
  * X+ port and ADC12 definitions.
  */
-#define TOUCH_X_PLUS_PORT       /*GPIO_PORT_P9*/GPIO_PORT_P8
-#define TOUCH_X_PLUS_PIN        /*GPIO_PIN7*/GPIO_PIN5
+#define TOUCH_X_PLUS_PORT       GPIO_PORT_P9//GPIO_PORT_P8
+#define TOUCH_X_PLUS_PIN        GPIO_PIN7//GPIO_PIN5
 #define TOUCH_X_PLUS_INPUT      ADC12_B_INPUT_A7
 #define TOUCH_X_PLUS_MEMORY     ADC12_B_MEMORY_1
 #define TOUCH_X_PLUS_IFG        ADC12IFG1
@@ -62,8 +62,8 @@
 /*
  * Y+ port and ADC12 definitions.
  */
-#define TOUCH_Y_PLUS_PORT       /*GPIO_PORT_P9*/GPIO_PORT_P8
-#define TOUCH_Y_PLUS_PIN        /*GPIO_PIN6*/GPIO_PIN4
+#define TOUCH_Y_PLUS_PORT       GPIO_PORT_P9//GPIO_PORT_P8
+#define TOUCH_Y_PLUS_PIN        GPIO_PIN6//GPIO_PIN4
 #define TOUCH_Y_PLUS_INPUT      ADC12_B_INPUT_A6
 #define TOUCH_Y_PLUS_MEMORY     ADC12_B_MEMORY_0
 #define TOUCH_Y_PLUS_IFG        ADC12IFG0
