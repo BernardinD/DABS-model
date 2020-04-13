@@ -570,6 +570,8 @@ void continuingMenu(uint16_t x, uint16_t y){
         resetHome();
         resetOp();
         updateMenuScreen(30);
+
+        printToDisplay(final_result);
     }
     else if(Graphics_isButtonSelected(&sleepButton,
                                            x,
@@ -593,21 +595,21 @@ int finalize(double result){
         results.borderColor = GRAPHICS_COLOR_WHITE;
         results.textColor = GRAPHICS_COLOR_WHITE;
         results.fillColor = GRAPHICS_COLOR_GREEN;
-        results.text = "GOOD";
+        results.text = "SAFE";
     }
     else if (good < result && result < bad){
         recomm_num = 21;
         results.borderColor = GRAPHICS_COLOR_WHITE;
         results.textColor = GRAPHICS_COLOR_BLACK;
         results.fillColor = GRAPHICS_COLOR_YELLOW;
-        results.text = "OK";
+        results.text = "ELEVATED";
     }
     else{
         recomm_num = 32;
         results.borderColor = GRAPHICS_COLOR_WHITE;
         results.textColor = GRAPHICS_COLOR_WHITE;
         results.fillColor = GRAPHICS_COLOR_RED;
-        results.text = "BAD";
+        results.text = "DANGEROUS";
     }
 }
 
@@ -633,47 +635,51 @@ void resultsMenu(uint16_t x, uint16_t y){
     }
 }
 
-void drawRestarDemo(uint16_t x, uint16_t y)
-{
-    //g_ranDemo = false;
-    Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_RED);
-    Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-    Graphics_clearDisplay(&g_sContext);
-    Graphics_drawStringCentered(&g_sContext, "Would you like to go back",
-                                AUTO_STRING_LENGTH,
-                                159,
-                                45,
-                                TRANSPARENT_TEXT);
-    Graphics_drawStringCentered(&g_sContext, "to the main menu?",
-                                AUTO_STRING_LENGTH,
-                                159,
-                                65,
-                                TRANSPARENT_TEXT);
+unsigned int find_OOM(unsigned int n){
 
-    // Draw Primitives image button
-    Graphics_drawButton(&g_sContext, &yesButton);
+    volatile unsigned int k = 10000;
 
-    // Draw Images image button
-    Graphics_drawButton(&g_sContext, &noButton);
+    do{
+        if(n >= k)
+            break;
+    }while( (k /= 10) > 1);
 
-    // Enable pins for release detection
-    touch_detectedTouch();
-    updateMenuScreen(99);   // Set screen to runRestarDemo
-    //P2IFG &= ~TOUCH_X_MINUS_PIN;
-    _low_power_mode_3();
+    return k;
 }
-void runRestarDemo(x,y){
 
-    if(Graphics_isButtonSelected(&noButton, x,
-                                 y))
-        Graphics_drawSelectedButton(&g_sContext, &noButton);
-    else if(Graphics_isButtonSelected(&yesButton, x,
-                                      y)){
-        Graphics_drawSelectedButton(&g_sContext, &yesButton);
+void printToDisplay(double num){
+    unsigned char ch;
+    // Getting the upper numbers and the decimals to 3 places
+    volatile int upper = (int)num, lower = (int)((num*1000)%1000);
 
-        updateMenuScreen(0);    // Set screen to main menu
-        __delay_cycles(10000000);
-    }
-    touch_detectedTouch();
-    _low_power_mode_3();
+    volatile unsigned int mag = find_OOM(upper), i = 0;
+
+    // For numbers
+    do{
+
+        ch = '0' + (upper/mag)%10;
+
+        Graphics_drawStringCentered(&g_sContext, recommendations[0],
+                                                        AUTO_STRING_LENGTH,
+                                                        (LCD_HORIZONTAL_MAX - 20),
+                                                        ((LCD_VERTICAL_MAX/(int)log10(mag))/2 * (i+1)),
+                                                        TRANSPARENT_TEXT);
+        i++;
+    }while((mag /= 10) > 0);
+
+    mag = find_OOM(lower);      // Should be equal to 3
+    i = mag;
+    // For decimals
+    do{
+
+            ch = '0' + (lower/mag)%10;
+
+            Graphics_drawStringCentered(&g_sContext, recommendations[0],
+                                                            AUTO_STRING_LENGTH,
+                                                            (LCD_HORIZONTAL_MAX - 20),
+                                                            ((LCD_VERTICAL_MAX/(int)log10(mag))/2 * (i+1)),
+                                                            TRANSPARENT_TEXT);
+            i++;
+        }while((mag /= 10) > 0);
+    return;
 }
