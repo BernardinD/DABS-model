@@ -39,6 +39,7 @@
 #include "HAL_MSP_EXP432P401R_KITRONIX320X240_SSD2119_SPI.h"
 #include "Images/images.h"
 #include "menus.h"
+#include <math.h>
 
 
 // Graphic library context
@@ -63,9 +64,10 @@ void initializeButtons(void);
 void drawMainMenu(void);
 void Initialize_modules_pins();
 uint16_t diff(uint16_t, uint16_t);
-volatile uint8_t laser1 = 0;
+uint8_t laser1 = 0;
 extern int textHeight = 50;
-double final_result;
+extern test_color1, test_color2, sample_color1, sample_color2;
+float final_result;
 int sleepCount = 0, touch_cal_count = 0;
 extern void eraseButton(Graphics_Button* button);
 
@@ -86,24 +88,25 @@ int16_t __low_level_init(void) {
 
 #endif
 
-volatile char mystring[30];
-volatile int8_t cal = 1;
+char mystring[30];
+int8_t cal = 1;
 void setCal(uint8_t new){
     cal = new;
 }
 
 // To use for dropping redundant points
-volatile int16_t prevX = 10000;
-volatile int16_t prevY = 10000;
+int16_t prevX = 10000;
+int16_t prevY = 10000;
 
 // Beer values
-double good = 0.5, bad = 1.4;
+float good = 0.301, bad = 0.427;
+int ans = 1;
 // 0.5, 1.4
 
 // All changes to list should reflect in function 'finalize()'
 int8_t* our_recommendations[] = {
                                  "*** RECOMMENDATION ERROR. THEY HAVE NOT BEEN SET ***",
-                                 "Your results have come back as good.,"
+                                 "Your results have come back as good.",
                                  "No recommendations.",
                                  "Your results have come back as ok.",
                                  "Your results have come back as bad.",
@@ -120,9 +123,36 @@ void main(void)
     WDTCTL = WDTPW + WDTHOLD;
     PM5CTL0 &= ~LOCKLPM5;         // Disable GPIO power-on default high-impedance mode
 
+    // Photodetetor ADC
+    /*P1SEL0 |= BIT2;
+    P1SEL1 |= BIT2;
+
+    Initialize_ADC();
+    setDetectorADC();
+    timerInit();
+
+    // Start timer for delay of ADC
+    ADC12MEM2 =0;
+    ADC12CTL0 |= ADC12SC;
+    run(1);
+    run(0);
+    float f = 123.456f;
+    // Wait for conversion to finish
+    ///////////////////////////////////////////
+    // while((ADC12IFGR0 & ADC12IFG2) == 0); //
+    ///////////////////////////////////////////
+    float input_1 = (((float)test_color1)/sample_color1);
+    float input_2 = (((float)test_color2)/sample_color2);
+    char string[] = "testing";
+    int ret = beer_lambert( input_1, input_2);
+    float final = ret/1000.0;
+    printToDisplay_height(f, (LCD_VERTICAL_MAX - 20));
+    printToDisplay_height(input_1, (LCD_VERTICAL_MAX - 20));*/
+
     //SET REFERENCE
     //while(REFCTL0 & REFGENBUSY);                            // If ref generator busy, WAIT
     //REFCTL0 |= REFVSEL_1 | REFON;                           // Select internal ref = 2.5V (For the ADC) and Internal Reference ON
+
 
 
     // Configure SMCLK to 8 MHz (used as SPI clock)
@@ -144,7 +174,7 @@ void main(void)
     //clockInit();
     //config_ACLK_to_32KHz_crystal();
     timerInit();
-    initializeDemoButtons();
+//    initializeDemoButtons();
     initializeButtons();
 
     // LCD setup using Graphics Library API calls
@@ -196,7 +226,7 @@ void run_startup(){
                                 TRANSPARENT_TEXT);
 
     /* Draw loading bar */
-    volatile int barHeight = (int)(LCD_HORIZONTAL_MAX*0.10),
+    int barHeight = (int)(LCD_HORIZONTAL_MAX*0.10),
             barWidth = (int)(LCD_HORIZONTAL_MAX * 0.40),
             xMin = (LCD_HORIZONTAL_MAX / 2) - (barWidth/2),
             yMin = ((LCD_VERTICAL_MAX / 2) + (int)(LCD_VERTICAL_MAX * 0.20)) - (barHeight/2),
@@ -244,6 +274,10 @@ void Initialize_modules_pins(){
     // Sensor signal - Output
     P3DIR |= BIT7;
     P3OUT &= ~BIT7;         // Temp start signal off
+
+    // Photodetetor ADC
+    P1SEL0 |= BIT2;
+    P1SEL1 |= BIT2;
 
 }
 uint16_t diff(uint16_t a, uint16_t b){
@@ -323,18 +357,14 @@ __interrupt void mine2() {
     P2IFG &= ~TOUCH_X_MINUS_PIN;
 }
 
-double beer(double sample, double test){
-    return 1e7;
-}
-
-// ISR of Timer (A0 vector)
+// ISR of TfloatA0 vector)
 // Channel 0
 #pragma vector = TIMER1_A0_VECTOR
 __interrupt void T1A0_ISR() {
 
     // Using touch pin as flag since it should be on during most operations
     // and off during the laser operation
-    if((P2IE & TOUCH_X_MINUS_PIN) != 0){
+    /*if((P2IE & TOUCH_X_MINUS_PIN) != 0){
         // But device to sleep
         // Check if count == limit, if so sleep, else increase counter
         if (sleepCount == 8){
@@ -345,10 +375,10 @@ __interrupt void T1A0_ISR() {
             sleepCount += 1;
 
     }
-    else{
+    else{*/
         // Using for delay in laser on/off
         __low_power_mode_off_on_exit();
-    }
+//    }
 }
 
 // ISR of Timer (A1 vector)
@@ -361,8 +391,8 @@ __interrupt void T1A_ISR() {
         than the GPIO interrupt)
     //if ((P2IN & TOUCH_X_MINUS_PIN) == 0){
     // Take points
-    volatile uint16_t x = touch_sampleX();
-    volatile uint16_t y = touch_sampleY();
+    uint16_t x = touch_sampleX();
+    uint16_t y = touch_sampleY();
 
     x = scaleX(x);
     y = scaleY(y);
@@ -460,8 +490,8 @@ __interrupt void T1A_ISR() {
 //    volatile uint16_t x = scaleX(touch_sampleX());
 //    volatile uint16_t y = scaleY(touch_sampleY());
 
-    volatile uint16_t diffX = diff(prevX, x);
-    volatile uint16_t diffY = diff(prevY, y);
+    uint16_t diffX = diff(prevX, x);
+    uint16_t diffY = diff(prevY, y);
     /*if((diffX < (LCD_HORIZONTAL_MAX*0.05)) && (diffY < (LCD_VERTICAL_MAX*0.05)))
         TA1CTL &= ~TAIFG;
         return;*/
@@ -490,9 +520,6 @@ __interrupt void T1A_ISR() {
             resultsMenu(x, y);
             break;
         // Default demo
-        case (99):
-            runRestarDemo(x,y);
-            break;
         default:
             break;
     }
@@ -524,11 +551,11 @@ void config_ACLK_to_32KHz_crystal() {
 // Function to switch between delay timers
 void setWhichTimer(int laser){
 
-    if (laser){
+    //if (laser){
         TA1CCR0 = (32000)/8 * 4;      // Set interval to 4 sec
         // Reset flags for other timer (count)
-    }
-    else{
+    //}
+    /*else{
         // Set timer interval (8 sec)
         TA1CCR0 = 32000;
 
@@ -540,7 +567,7 @@ void setWhichTimer(int laser){
         //--- Enable interrupt for channel 0---
         TA1CCTL0 |= CCIE;
     }
-    sleepCount = 0;
+    sleepCount = 0;*/
 }
 
 
@@ -675,7 +702,7 @@ void drawResults(void){
 
     Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_RED);
     Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-    Graphics_clearDisplay(&g_sContext);
+//    Graphics_clearDisplay(&g_sContext);
 
     // Save a temporary homeButton in 'menu.c'
     saveHome();
@@ -693,6 +720,17 @@ void drawResults(void){
 
     Graphics_drawButton(&g_sContext, &sleepButton);
 
+    Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
+        Graphics_drawStringCentered(&g_sContext, "Sampling Complete.",
+                                    AUTO_STRING_LENGTH,
+                                    159,
+                                    (LCD_VERTICAL_MAX / 2) - 25,
+                                    TRANSPARENT_TEXT);
+        Graphics_drawStringCentered(&g_sContext, "Computing results...",
+                                    AUTO_STRING_LENGTH,
+                                    159,
+                                    (LCD_VERTICAL_MAX / 2),
+                                    TRANSPARENT_TEXT);
 
     Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_RED);
     Graphics_drawStringCentered(&g_sContext, "Here are the results. What next?",

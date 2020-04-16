@@ -138,24 +138,34 @@ void whichADC(int touch){
     // Turn off ENC (Enable Conversion) bit while modifying the configuration
     ADC12CTL0 &= ~ADC12ENC;
     if(touch){
-        setTouchADC();
+        // Undo detector
+        ADC12MCTL2 &= ~ADC12VRSEL_1;
+        ADC12MCTL2 &= ~(ADC12INCH1|ADC12EOS);                    // Lasor sensor
+
+        ADC12MCTL0 &= ~(ADC12VRSEL3|ADC12VRSEL2|ADC12VRSEL1|ADC12VRSEL0);
+        ADC12MCTL1 |= (ADC12INCH3|ADC12INCH2|ADC12INCH1|ADC12INCH0);//(ADC12INCH2|ADC12INCH1|ADC12EOS);                     // X
+        ADC12MCTL0 |= (ADC12INCH3|ADC12INCH2|ADC12INCH1);//(ADC12INCH2|ADC12INCH1|ADC12INCH0);                   // Y
+
+
     }
     else{
-        setDetectorADC();
+        // Undo touch ADC
+        ADC12MCTL1 &= ~(ADC12INCH3|ADC12INCH2|ADC12INCH1|ADC12INCH0|ADC12EOS);//(ADC12INCH2|ADC12INCH1|ADC12EOS);                     // X
+        ADC12MCTL0 &= ~(ADC12INCH3|ADC12INCH2|ADC12INCH1);//(ADC12INCH2|ADC12INCH1|ADC12INCH0);                   // Y
+
+        ADC12MCTL2 |= ADC12VRSEL_1;
+        ADC12MCTL2 |= (ADC12INCH1|ADC12EOS);                    // Lasor sensor
     }
     // Turn on ENC (Enable Conversion) bit at the end of the configuration
     ADC12CTL0 |= ADC12ENC;
 }
 
 void setTouchADC(){
-    ADC12MCTL0 &= ~(ADC12VRSEL3|ADC12VRSEL2|ADC12VRSEL1|ADC12VRSEL0);
-    ADC12MCTL1 |= (ADC12INCH3|ADC12INCH2|ADC12INCH1|ADC12INCH0);//(ADC12INCH2|ADC12INCH1|ADC12EOS);                     // X
-    ADC12MCTL0 |= (ADC12INCH3|ADC12INCH2|ADC12INCH1);//(ADC12INCH2|ADC12INCH1|ADC12INCH0);                   // Y
+    whichADC(1);
 }
 
 void setDetectorADC(){
-    ADC12MCTL2 |= ADC12VRSEL_1;
-    ADC12MCTL2 |= (ADC12INCH1|ADC12EOS);                    // Lasor sensor
+    whichADC(0);
 }
 
 void touch_initInterface(void)

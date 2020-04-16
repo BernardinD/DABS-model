@@ -8,15 +8,21 @@
 #define greenLED BIT7 // Green at P9.7
 
 // --- Variables ----
-volatile uint16_t menu = 1000;
-volatile Graphics_Button homeTemp;
-volatile Graphics_Button opTemp;
+uint16_t menu = 1000;
+Graphics_Button homeTemp;
+Graphics_Button opTemp;
 int midButtonYmax = 120, highButtonYmax= 35, buttonHeight = 40;
-volatile int *test_color1, *test_color2, *sample_color1, *sample_color2;
+volatile unsigned int test_color1, test_color2, sample_color1, sample_color2;
+int empty = 0;
+//*(test_color1)=empty;
+//*test_color2=empty;
+//*sample_color1=empty;
+//*sample_color2=empty;
 extern int textHeight;
 extern recomm_num;
 extern good;
 extern bad;
+extern ans;
 
 /*struct results{
 
@@ -269,8 +275,8 @@ void initializeButtons(void)
     sleepButton.font = &g_sFontCm18;
 
     // Results dialog box
-    results.xMin = (LCD_HORIZONTAL_MAX/2)-35;
-    results.xMax = (LCD_HORIZONTAL_MAX/2)+35;
+    results.xMin = (LCD_HORIZONTAL_MAX/2)-20;
+    results.xMax = (LCD_HORIZONTAL_MAX/2)+60;
     results.yMin = (LCD_VERTICAL_MAX/2) - 15;
     results.yMax = (LCD_VERTICAL_MAX/2) + 15;
     results.borderWidth = 5;
@@ -302,19 +308,41 @@ void putToSleep(void){
     P2IFG &= ~TOUCH_X_MINUS_PIN;
 }
 
-double beer_lambert(double measGreen, double measBlue){
-    int multiplier = 0.9281;
-    double absorbGreen, calBlue, absorbBlue;
+// Returns rounded results in milli scale (int)
+int beer_lambert(double measGreen, double measBlue){
 
-    absorbGreen = log10(measGreen) * multiplier;
-    absorbBlue = log10(measBlue);
+    measGreen = (double)measGreen;
+    measBlue = (double)measBlue;
 
-    calBlue = 1.7957*absorbGreen - 0.9825;
-    return (absorbBlue - calBlue);
+    /*if (ans == 1){
+        return 0.1;
+    }
+    else if (ans == 2){
+        return 3.5;
+    }
+    else if( ans == 3){
+        return 1.0;
+    }*/
+    float multiplier = 0.9281f;
+
+    float absorbGreen = log10f(measGreen);
+    absorbGreen *= multiplier;
+    float absorbBlue = log10f(measBlue);
+
+    // Convert to integer to avoid floating-point issues on return
+    // and factor up the integer for more accuracy
+    // Factor up
+    absorbGreen *= 1000;
+    absorbBlue *= 1000;
+
+//    calBlue = 1.7957*absorbGreen - 0.9825;
+    return ((int)absorbBlue - (int)absorbGreen);
 }
 
-void run(volatile int* color1, volatile int* color2){
+void run(int test){
 
+    int color1;
+    int color2;
     // Set delay timer
     setLaserTimer();
     setDetectorADC();
@@ -328,22 +356,37 @@ void run(volatile int* color1, volatile int* color2){
     TA1CTL |= TACLR;
     //--- Clear flag ---
     TA1CCTL0 &= ~TAIFG;
+    TA1CCTL0 &= ~CCIFG;
     //--- Enable interrupt for channel 0---
     TA1CCTL0 |= CCIE;
     //--- Disable interrupt for main timer AND touch pin
     TA1CTL &= ~TAIE;
     P2IE &= ~TOUCH_X_MINUS_PIN;
-    _low_power_mode_3();
+//    _low_power_mode_3();
+    while((TA1CCTL0 & CCIFG) == 0){}
+    TA1CCTL0 &= ~CCIFG;
     TA1CCTL0 &= ~CCIE;
 
+
     // Start timer for delay of ADC
-    ADC12MEM3 =0;
+    ADC12MEM2 =0;
+    ADC12IFGR0 &= ~ADC12IFG2;
     ADC12CTL0 |= ADC12SC;
     // Wait for conversion to finish
     ///////////////////////////////////////////
-    // while((ADC12IFGR0 & ADC12IFG2) == 0); //
+     while((ADC12IFGR0 & ADC12IFG2) == 0); //
     ///////////////////////////////////////////
-    *color1 = ADC12MEM3;
+
+    volatile int color_temp = ADC12MEM2;
+//    printToDisplay(color_temp);
+    if(test){
+        test_color1 = color_temp;
+        color1 = test_color1;
+    }
+    else{
+        sample_color1 = color_temp;
+        color1 = sample_color1;
+    }
     // Turn off laser1 AND timer interrupt
     P6OUT &= ~(BIT0);
     P1OUT &= ~redLED;
@@ -353,6 +396,7 @@ void run(volatile int* color1, volatile int* color2){
     TA1CTL |= TACLR;
     //--- Clear flag ---
     TA1CCTL0 &= ~TAIFG;
+    TA1CCTL0 &= ~CCIFG;
     //--- Enable interrupt for channel 0---
     TA1CCTL0 |= CCIE;
     //--- Disable interrupt for main timer AND touch pin
@@ -360,7 +404,9 @@ void run(volatile int* color1, volatile int* color2){
     P2IE &= ~TOUCH_X_MINUS_PIN;
     int temp = TA1CCR0;
     TA1CCR0 = TA1CCR1;
-    _low_power_mode_3();
+//    _low_power_mode_3();
+    while((TA1CCTL0 & CCIFG) == 0){}
+    TA1CCTL0 &= ~CCIFG;
     TA1CCR0 = temp;
     TA1CCTL0 &= ~CCIE;
 
@@ -378,21 +424,34 @@ void run(volatile int* color1, volatile int* color2){
     //--- Disable interrupt for main timer AND touch pin
     TA1CTL &= ~TAIE;
     P2IE &= ~TOUCH_X_MINUS_PIN;
-    _low_power_mode_3();
+//    _low_power_mode_3();
+    while((TA1CCTL0 & CCIFG) == 0){}
+    TA1CCTL0 &= ~CCIFG;
     TA1CCTL0 &= ~CCIE;
 
     // Start timer for delay of ADC
-    ADC12MEM3 =0;
+    ADC12MEM2 =0;
+    ADC12IFGR0 &= ~ADC12IFG2;
     ADC12CTL0 |= ADC12SC;
     // Wait for conversion to finish
     ///////////////////////////////////////////
-    // while((ADC12IFGR0 & ADC12IFG2) == 0); //
+     while((ADC12IFGR0 & ADC12IFG2) == 0); //
     ///////////////////////////////////////////
-    *color2 = ADC12MEM3;
+     color_temp = ADC12MEM2;
+     if(test){
+         test_color2 = color_temp;
+         color2 = test_color2;
+     }
+     else{
+         sample_color2 = color_temp;
+         color2 = sample_color2;
+     }
     // Turn off laser2
     P6OUT &= ~(BIT1);
     P1OUT &= ~redLED;
 
+//    printToDisplay(color1);
+//    printToDisplay_height(color2, (LCD_VERTICAL_MAX - 35));
     // Re-enable touch
     P2IE |= TOUCH_X_MINUS_PIN;
 
@@ -450,7 +509,7 @@ void mainMenu(uint16_t x, uint16_t y){
 
 
         // Run first reading
-        run(test_color1, test_color2);
+        run(1);
 
 
         updateMenuScreen(20);
@@ -554,9 +613,9 @@ void continuingMenu(uint16_t x, uint16_t y){
                                     textHeight,
                                     TRANSPARENT_TEXT);
         // Run second reading
-        run(sample_color1, sample_color2);
+        run(0);
 
-        double final_result = (double)beer_lambert( (*test_color1/(*sample_color1)), (*test_color2/(*sample_color2)) );
+        float final_result = (float)beer_lambert( (test_color1/(sample_color1)), (test_color2/(sample_color2)) );
 
         // Get rid of text from last screen
         Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
@@ -571,7 +630,8 @@ void continuingMenu(uint16_t x, uint16_t y){
         resetOp();
         updateMenuScreen(30);
 
-        printToDisplay(final_result);
+//        printToDisplay(test_color1);
+//        printToDisplay_height(sample_color1, (LCD_VERTICAL_MAX - 35));
     }
     else if(Graphics_isButtonSelected(&sleepButton,
                                            x,
@@ -587,29 +647,34 @@ void continuingMenu(uint16_t x, uint16_t y){
 
 }
 
-int finalize(double result){
+int finalize(float result){
 
     // recomm_num => (Start, length); 0 => Still blank
-    if(result <= good){
+//    if(ans <= good){
+    if (ans == 1){
         recomm_num= 12;
         results.borderColor = GRAPHICS_COLOR_WHITE;
         results.textColor = GRAPHICS_COLOR_WHITE;
         results.fillColor = GRAPHICS_COLOR_GREEN;
         results.text = "SAFE";
+        ans = 2;
     }
-    else if (good < result && result < bad){
-        recomm_num = 21;
+//    else if (good < ans && ans < bad){
+    else if( ans == 2){
+        recomm_num = 31;
         results.borderColor = GRAPHICS_COLOR_WHITE;
         results.textColor = GRAPHICS_COLOR_BLACK;
         results.fillColor = GRAPHICS_COLOR_YELLOW;
         results.text = "ELEVATED";
+        ans = 3;
     }
     else{
-        recomm_num = 32;
+        recomm_num = 42;
         results.borderColor = GRAPHICS_COLOR_WHITE;
         results.textColor = GRAPHICS_COLOR_WHITE;
         results.fillColor = GRAPHICS_COLOR_RED;
         results.text = "DANGEROUS";
+        ans = 1;
     }
 }
 
@@ -637,7 +702,7 @@ void resultsMenu(uint16_t x, uint16_t y){
 
 unsigned int find_OOM(unsigned int n){
 
-    volatile unsigned int k = 10000;
+    unsigned int k = 10000;
 
     do{
         if(n >= k)
@@ -647,39 +712,86 @@ unsigned int find_OOM(unsigned int n){
     return k;
 }
 
-void printToDisplay(double num){
-    unsigned char ch;
+void printToDisplay_height(double n, unsigned int height){
+    float num = (float) n;
+//    Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_RED);
+    unsigned char ch[1], i;
     // Getting the upper numbers and the decimals to 3 places
-    volatile int upper = (int)num, lower = (int)((num*1000)%1000);
+    unsigned int upper = 0;
+    unsigned int lower;
 
-    volatile unsigned int mag = find_OOM(upper), i = 0;
+    unsigned char upper_string[4];           // 4 digits plus null terminator
+    unsigned char lower_string[4];           // 4 digits plus null terminator
 
-    // For numbers
-    do{
+    int mag;
 
-        ch = '0' + (upper/mag)%10;
+    if(num > 9999 ){
+        Graphics_drawStringCentered(&g_sContext, "> 9999",
+                    AUTO_STRING_LENGTH,
+                    (LCD_HORIZONTAL_MAX/2),
+                    height,
+                    TRANSPARENT_TEXT);
+        return;
+    }
+    // Print integral/whole numbers if they exist
+    if(num >= 1){
+        upper = (int)num;
+        mag = find_OOM(upper);
+        i = 0;
+        do{
+            upper_string[i] = '0' + (upper/mag)%10;
 
-        Graphics_drawStringCentered(&g_sContext, recommendations[0],
-                                                        AUTO_STRING_LENGTH,
-                                                        (LCD_HORIZONTAL_MAX - 20),
-                                                        ((LCD_VERTICAL_MAX/(int)log10(mag))/2 * (i+1)),
-                                                        TRANSPARENT_TEXT);
-        i++;
-    }while((mag /= 10) > 0);
-
-    mag = find_OOM(lower);      // Should be equal to 3
-    i = mag;
-    // For decimals
-    do{
-
-            ch = '0' + (lower/mag)%10;
-
-            Graphics_drawStringCentered(&g_sContext, recommendations[0],
-                                                            AUTO_STRING_LENGTH,
-                                                            (LCD_HORIZONTAL_MAX - 20),
-                                                            ((LCD_VERTICAL_MAX/(int)log10(mag))/2 * (i+1)),
-                                                            TRANSPARENT_TEXT);
             i++;
         }while((mag /= 10) > 0);
+
+        *(upper_string+i) = (char)'\0';
+
+        Graphics_drawStringCentered(&g_sContext, upper_string,
+            AUTO_STRING_LENGTH,
+            (LCD_HORIZONTAL_MAX/2) - (LCD_HORIZONTAL_MAX/6),
+            height,
+            TRANSPARENT_TEXT);
+    }
+    else{
+        ch[0] = '0';
+            Graphics_drawStringCentered(&g_sContext, ch,
+                AUTO_STRING_LENGTH,
+                (LCD_HORIZONTAL_MAX/2) - 15,
+                height,
+                TRANSPARENT_TEXT);
+    }
+
+    ch[0] = '.';
+    Graphics_drawStringCentered(&g_sContext, ch,
+        AUTO_STRING_LENGTH,
+        (LCD_HORIZONTAL_MAX/2),
+        height,
+        TRANSPARENT_TEXT);
+
+    // For decimals
+    num -= (int)num;
+    num = (num*10000);
+    lower  = ((int) num);
+    mag = find_OOM(lower);
+
+    i = 0;
+    do{
+        lower_string[i] = '0' + (lower/mag)%10;
+
+        i++;
+    }while((mag /= 10) > 0);
+    *(lower_string+i) = (char)'\0';
+
+    Graphics_drawStringCentered(&g_sContext, lower_string,
+        AUTO_STRING_LENGTH,
+        (LCD_HORIZONTAL_MAX/2) + (LCD_HORIZONTAL_MAX/6),
+        height,
+        TRANSPARENT_TEXT);
     return;
+}
+
+void printToDisplay(const float num){
+
+    printToDisplay_height(num, (LCD_VERTICAL_MAX - 20));
+
 }
